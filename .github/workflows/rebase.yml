@@ -3,7 +3,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - master  
+      - main  
 
 jobs:
   rebase:
@@ -38,11 +38,11 @@ jobs:
             echo "Rebasing PR #$pr_number ($pr_branch)"
 
             # Fetch the base branch (master)
-            git fetch origin master
+            git fetch origin main
 
             # Checkout the PR branch and rebase onto the base branch
             git checkout $pr_branch
-            git rebase origin/master
+            git rebase origin/main
 
             # Push the rebased branch (force-push safely)
             git push origin $pr_branch --force-with-lease
