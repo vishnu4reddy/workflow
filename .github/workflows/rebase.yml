@@ -1,32 +1,51 @@
-name: Rebase Open Pull Requests on Main Merge
+name: Rebase Open PRs on Merge
 
 on:
   push:
     branches:
-      - main
+      - master  
 
 jobs:
   rebase:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config user.name "vishnu4reddy"
+          git config user.email "vishnu4reddy"
 
       - name: Install GitHub CLI
-        run: sudo apt-get install gh
-
-      - name: Authenticate with GitHub CLI
-        run: gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get open pull requests
         run: |
-          prs=$(gh pr list --state open --json number -q '.[].number')
-          echo "Open PRs: $prs"
-          for pr in $prs; do
-            echo "Rebasing PR #$pr"
-            gh pr checkout $pr
-            git fetch origin main
-            git rebase origin/main
-            git push --force-with-lease
-          done
+          sudo apt-get install gh
+        
+      - name: Get list of open PRs
+        id: pr_list
+        run: |
+          prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
+          echo "::set-output name=prs::$prs"
 
+      - name: Rebase each open PR
+        run: |
+          for pr in $(echo "${{ steps.pr_list.outputs.prs }}" | tr " " "\n")
+          do
+            pr_number=$(echo $pr | awk '{print $1}')
+            pr_branch=$(echo $pr | awk '{print $2}')
+            
+            echo "Rebasing PR #$pr_number ($pr_branch)"
+
+            # Fetch the base branch (master)
+            git fetch origin master
+
+            # Checkout the PR branch and rebase onto the base branch
+            git checkout $pr_branch
+            git rebase origin/master
+
+            # Push the rebased branch (force-push safely)
+            git push origin $pr_branch --force-with-lease
+          done
+    env:
+        GH_TOKEN: ${{ github.token }}
