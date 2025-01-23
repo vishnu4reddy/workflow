@@ -1,0 +1,32 @@
+name: Rebase Open Pull Requests on Main Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  rebase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
+      - name: Authenticate with GitHub CLI
+        run: gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get open pull requests
+        run: |
+          prs=$(gh pr list --state open --json number -q '.[].number')
+          echo "Open PRs: $prs"
+          for pr in $prs; do
+            echo "Rebasing PR #$pr"
+            gh pr checkout $pr
+            git fetch origin main
+            git rebase origin/main
+            git push --force-with-lease
+          done
+
