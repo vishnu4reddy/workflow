@@ -26,11 +26,11 @@ jobs:
         id: pr_list
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          echo "::set-output name=prs::$prs"
+          echo "prs=$prs" >> $GITHUB_ENV
 
       - name: Rebase each open PR
         run: |
-          for pr in $(echo "${{ steps.pr_list.outputs.prs }}" | tr " " "\n")
+          for pr in $prs
           do
             pr_number=$(echo $pr | awk '{print $1}')
             pr_branch=$(echo $pr | awk '{print $2}')
@@ -48,4 +48,4 @@ jobs:
             git push origin $pr_branch --force-with-lease
           done
     env:
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
