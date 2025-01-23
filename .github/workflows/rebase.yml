@@ -1,14 +1,14 @@
 name: Rebase Open PRs on Merge
 
 on:
-  push:
-    branches:
-      - main  # Ensure this is the correct default branch
+  pull_request:
+    types:
+      - opened
+      
 
 jobs:
   rebase:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
       - name: Install GitHub CLI
         run: |
           sudo apt-get install gh
-        
+      
       - name: Get list of open PRs
         id: pr_list
         run: |
@@ -37,16 +37,14 @@ jobs:
             
             echo "Rebasing PR #$pr_number ($pr_branch)"
 
-            # Fetch the latest 'main' branch from the remote repository
             git fetch origin main
-
-            # Checkout the PR branch
             git checkout $pr_branch
 
-            # Rebase the PR branch onto the latest 'main' branch
+            echo "Before rebase:"
+            git log --oneline --decorate --graph
+
             git rebase origin/main
 
-            # Check if rebase was successful
             if [[ $? -ne 0 ]]; then
               echo "Rebase failed for PR #$pr_number due to conflicts. Please resolve manually."
               exit 1
@@ -54,10 +52,13 @@ jobs:
               echo "Rebase successful for PR #$pr_number"
             fi
 
-            # Force push the rebased branch
+            echo "After rebase:"
+            git log --oneline --decorate --graph
+
             git push origin $pr_branch --force-with-lease
           done
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
