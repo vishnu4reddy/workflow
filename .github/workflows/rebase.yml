@@ -30,7 +30,7 @@ jobs:
             echo "No open PRs found."
             exit 0
           fi
-          # Setting each PR in GITHUB_ENV directly and correcting the format
+          # Setting each PR in GITHUB_ENV directly
           IFS=$'\n'  # Set IFS to newline for reading
           for pr in $prs; do
             pr=$(echo "${pr}" | xargs)  # Trim whitespace
@@ -48,18 +48,22 @@ jobs:
           set -x
           git fetch origin  # Get all branches
           # Loop through each pr_value set in the environment
-          for pr in $(printenv | grep pr_value | cut -d'=' -f2); do
+          while IFS= read -r pr; do
             echo "Processing PR: '$pr'"
-            pr_number=$(echo "$pr" | awk '{print $1}')   # Expected to extract the first column as the number
-            pr_branch=$(echo "$pr" | awk '{print $2}')   # Expected to extract the second column as the branch
+            pr_number=$(echo "$pr" | awk '{print $1}')   # Extract the first column as the number
+            pr_branch=$(echo "$pr" | awk '{print $2}')   # Extract the second column as the branch
             echo "Extracted PR number: $pr_number and branch: $pr_branch"
+            
+            # Check if the branch name is empty
             if [[ -z "$pr_branch" ]]; then
               echo "Error: Branch name for PR #$pr_number is empty."
               continue
             fi
+            
             # Checkout the branch
             git checkout "$pr_branch" || { echo "Failed to checkout $pr_branch"; exit 1; }
             echo "Checked out branch $pr_branch"
+            
             # Attempt to rebase the branch
             if ! git rebase origin/main; then
               echo "Rebase failed for $pr_branch due to conflicts. Skipping this PR."
@@ -71,4 +75,4 @@ jobs:
             # Push the rebased branch
             git push origin "$pr_branch" --force-with-lease || { echo "Failed to push $pr_branch"; exit 1; }
             echo "Successfully pushed changes for $pr_branch"
-          done
+          done <<< "$(printenv | grep pr_value | cut -d'=' -f2)"  # Read from the environment
