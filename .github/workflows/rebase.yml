@@ -3,7 +3,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - master  # Trigger on push to master branch
+      - main  # Trigger on push to master branch
 
 jobs:
   rebase:
@@ -49,7 +49,7 @@ jobs:
             git log --oneline --decorate --graph
 
             # Rebase the PR branch onto the latest master (origin/master)
-            git rebase origin/master
+            git rebase origin/main
 
             # Check for rebase success
             if [[ $? -ne 0 ]]; then
