@@ -26,24 +26,14 @@ jobs:
         id: pr_list
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          
-          # Log the PR list to check the format
-          echo "PR List: $prs"
-          
-          # Format the PR list as a comma-separated value for easier processing
-          prs_list=$(echo "$prs" | tr '\n' ',' | sed 's/,$//')  # Replace newlines with commas
-          
-          echo "prs_list=$prs_list" >> $GITHUB_ENV
+          echo "prs=$prs" >> $GITHUB_ENV
 
       - name: Rebase each open PR
         run: |
-          # Read the PR list from the environment variable
           prs_list="${{ env.prs_list }}"
 
-          # Split the prs_list and loop over each PR
           IFS=',' read -ra prs <<< "$prs_list"
-          
-          # Iterate through each PR and rebase it
+
           for pr in "${prs[@]}"
           do
             pr_number=$(echo $pr | awk '{print $1}')
@@ -51,35 +41,28 @@ jobs:
             
             echo "Rebasing PR #$pr_number ($pr_branch)"
 
-            # Fetch all branches to ensure the local repository is up to date
             git fetch --all
 
-            # Checkout the PR branch
             git checkout $pr_branch
 
-            # Log the current commit history of the PR branch
             echo "Before rebase (PR $pr_number):"
             git log --oneline --decorate --graph
 
-            # Rebase the PR branch onto the latest master (origin/master)
-            git rebase origin/main
+            # Rebase the PR branch onto the latest master
+            git rebase origin/master || {
+              echo "Rebase failed due to conflicts, skipping..."
+              git rebase --skip
+            }
 
-            # Check for rebase success
-            if [[ $? -ne 0 ]]; then
-              echo "Rebase failed for PR #$pr_number due to conflicts."
-              exit 1
-            fi
-
-            # Log the commit history after rebase
             echo "After rebase (PR $pr_number):"
             git log --oneline --decorate --graph
 
-            # Push the rebased branch (force-push safely)
             git push origin $pr_branch --force-with-lease
           done
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
