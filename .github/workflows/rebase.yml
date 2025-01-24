@@ -13,7 +13,7 @@ jobs:
       - name: Set up Git
         run: |
           git config user.name "vishnu4reddy"  # Replace with your GitHub username 
-          git config user.email "vreddy@msystechnoloeis.com"  # Ensure this email is valid 
+          git config user.email "vishnu4reddy@users.noreply.github.com"  # Ensure this email is valid 
 
       - name: Install GitHub CLI
         run: |
