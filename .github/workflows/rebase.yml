@@ -2,7 +2,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - main  
+      - main 
 jobs:
   rebase:
     runs-on: ubuntu-latest
@@ -20,11 +20,11 @@ jobs:
       - name: Get list of open PRs
         id: pr_list
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Make sure your token has the right permissions
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure your token has proper permissions
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          echo "Open PRs: $prs"  # Debugging to print the output
-          echo "prs='$prs'" >> $GITHUB_ENV  # Setting the variable to be usable in next steps
+          echo "Open PRs: $prs"  
+          echo "prs='$prs'" >> $GITHUB_ENV  # Set variable for the next steps
       - name: Debug PR List Output
         run: |
           echo "Debugging PR List Output: ${{ env.prs }}"
@@ -34,19 +34,16 @@ jobs:
           set -x
           git fetch origin  # Get all branches
           
-          # Verify we received PRs
+          echo "The following PRs were found: ${{ env.prs }}"
           if [[ -z "${{ env.prs }}" ]]; then
             echo "No open PRs found."
-            exit 0  # Exit gracefully if no PRs are found
+            exit 0
           fi
-          
-          echo "The following PRs were found: ${{ env.prs }}"
           
           IFS=$'\n'  # Use newline as a delimiter
           for pr in ${{ env.prs }}; do
-            echo "Processing PR: $pr"  # Log the entire entry for debugging
+            echo "Processing PR: $pr"
             
-            # Split the output into pr_number and pr_branch
             pr_number=$(echo "$pr" | awk '{print $1}')
             pr_branch=$(echo "$pr" | awk '{print $2}')
             
@@ -54,15 +51,21 @@ jobs:
             
             if [[ -z "$pr_branch" ]]; then
               echo "Error: Branch name for PR #$pr_number is empty."
-              continue  # Continue the loop instead of exiting if a branch is not found
+              continue
             fi
             # Checkout the branch
             git checkout "$pr_branch" || { echo "Failed to checkout $pr_branch"; exit 1; }
             echo "Checked out branch $pr_branch"
-            # Rebase the branch
-            git rebase origin/main || { echo "Rebase failed for $pr_branch"; exit 1; }
+            # Attempt to rebase the branch
+            if ! git rebase origin/main; then
+              echo "Rebase failed for $pr_branch due to conflicts. Skipping this PR."
+              git rebase --abort  # Abort the rebase process to avoid issues
+              continue  # Skip to the next PR
+            fi
+            
             echo "Rebase successful for $pr_branch"
             # Push the rebased branch
             git push origin "$pr_branch" --force-with-lease || { echo "Failed to push $pr_branch"; exit 1; }
             echo "Successfully pushed changes for $pr_branch"
           done
+
