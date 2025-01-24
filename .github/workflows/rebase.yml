@@ -22,10 +22,6 @@ jobs:
         run: |
           sudo apt-get install gh
 
-      - name: Authenticate with GitHub CLI
-        run: |
-          echo $GITHUB_TOKEN | gh auth login --with-token
-        
       - name: Get list of open PRs
         id: pr_list
         run: |
@@ -46,10 +42,3 @@ jobs:
             git rebase origin/main
             git push origin $pr_branch --force-with-lease
           done
-
-
-
-
-
-
-
