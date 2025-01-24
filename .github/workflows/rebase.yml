@@ -22,7 +22,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure your token has proper permissions
         run: |
-          # Fetching open PRs
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
           echo "Open PRs: '$prs'"  # Quoting output for better visibility
           
@@ -31,10 +30,10 @@ jobs:
             echo "No open PRs found."
             exit 0
           fi
-          # Directly assign the raw list to GITHUB_ENV
-          IFS=$'\n'          # Set IFS to newline for reading
+          # Setting each PR in GITHUB_ENV directly and correcting the format
+          IFS=$'\n'  # Set IFS to newline for reading
           for pr in $prs; do
-            # Trim whitespace and set as environment variable for each PR
+            pr=$(echo "${pr}" | xargs)  # Trim whitespace
             echo "Setting pr_value: '$pr'"  # Debug output
             echo "pr_value=$pr" >> $GITHUB_ENV  # Use this format
           done
@@ -51,8 +50,8 @@ jobs:
           # Loop through each pr_value set in the environment
           for pr in $(printenv | grep pr_value | cut -d'=' -f2); do
             echo "Processing PR: '$pr'"
-            pr_number=$(echo "$pr" | awk '{print $1}')  # Expected first column as number
-            pr_branch=$(echo "$pr" | awk '{print $2}')  # Expected second column as branch
+            pr_number=$(echo "$pr" | awk '{print $1}')   # Expected to extract the first column as the number
+            pr_branch=$(echo "$pr" | awk '{print $2}')   # Expected to extract the second column as the branch
             echo "Extracted PR number: $pr_number and branch: $pr_branch"
             if [[ -z "$pr_branch" ]]; then
               echo "Error: Branch name for PR #$pr_number is empty."
