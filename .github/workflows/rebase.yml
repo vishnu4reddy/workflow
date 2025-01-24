@@ -41,7 +41,14 @@ jobs:
         run: |
           echo "Debugging PR List Output:"
           # This will print all pr_value entries set
-          printenv | grep pr_value 
+          
+
+          gh pr list --state open
+          if [ $? -ne 0 ]; then
+              echo "Error: Failed to list PRs"
+              exit 1
+          fi
+
           
       - name: Rebase each open PR
         run: |
