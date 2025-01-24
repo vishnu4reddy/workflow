@@ -1,48 +1,45 @@
 name: Rebase Open PRs on Merge
-
 on:
   push:
     branches:
-      - main  
-
+      - main 
 jobs:
   rebase:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Git
         run: |
-          git config user.name "vishnu4reddy" 
-          git config user.email "vishnu4reddy" 
-
+          git config user.name "vishnu4reddy"  # Replace with your GitHub username
+          git config user.email "vishnu4reddy@users.noreply.github.com"  # Replace with your GitHub username
       - name: Install GitHub CLI
         run: |
-          sudo apt-get install gh
-
+          sudo apt-get install -y gh  # Added '-y' to auto-confirm the installation
       - name: Get list of open PRs
         id: pr_list
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Pass the token explicitly
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure the token has repo permissions
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
           echo "Open PRs: $prs"  # Debugging step to print out the list of PRs
-          echo "prs=$prs" >> $GITHUB_ENV
-
+          echo "prs=$prs" >> $GITHUB_ENV  # Correctly sets environment variable
       - name: Rebase each open PR
         run: |
+          set -x  # Print commands for debugging
+          git fetch origin  # Make sure to fetch all branches
           echo "The following PRs were found: ${{ env.prs }}"  # Debugging to check what was passed
-          for pr in $(echo "${{ steps.pr_list.outputs.prs }}" | tr " " "\n")
-          do
+          
+          # Iterate through each PR
+          IFS=$'\n'  # Use newline as a delimiter for loop
+          for pr in ${{ env.prs }}; do
             pr_number=$(echo $pr | awk '{print $1}')
             pr_branch=$(echo $pr | awk '{print $2}')
-            
             echo "Rebasing PR #$pr_number ($pr_branch)"
-
-            git fetch origin main
-            git checkout $pr_branch
-            git rebase origin/main
-            git push origin $pr_branch --force-with-lease
+            
+            # Ensure to switch to the PR branch, and handle errors
+            git checkout "$pr_branch" || { echo "Failed to checkout $pr_branch"; exit 1; }
+            git rebase origin/main || { echo "Rebase failed for $pr_branch"; exit 1; }
+            git push origin "$pr_branch" --force-with-lease || { echo "Failed to push $pr_branch"; exit 1; }
           done
+
