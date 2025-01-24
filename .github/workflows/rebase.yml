@@ -18,22 +18,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
       - name: Get list of open PRs
+            
         id: pr_list
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure your token has proper permissions
         run: |
+          # Fetching open PRs and setting output correctly
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
           echo "Open PRs: $prs"  
           
+          # Check if no PRs were returned
           if [[ -z "$prs" ]]; then
             echo "No open PRs found."
             exit 0
           fi
-          # Set for GITHUB_ENV as PR_RAW to avoid formatting issues with newlines/spaces
-          IFS=$'\n' read -r -d '' -a pr_array <<< "$prs"  # Split into array by newlines
-          for pr in "${pr_array[@]}"; do
+          
+          # Use printf to handle newlines properly
+          while IFS= read -r pr; do
             echo "pr_value=$pr" >> $GITHUB_ENV  # Set each PR separately in GITHUB_ENV
-          done
+          done <<< "$prs"
+
       - name: Debug PR List Output
         run: |
           echo "Debugging PR List Output:"
