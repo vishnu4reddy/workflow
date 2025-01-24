@@ -26,12 +26,25 @@ jobs:
         id: pr_list
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          echo "prs=$prs" >> $GITHUB_ENV
+          
+          # Log the PR list to check the format
+          echo "PR List: $prs"
+          
+          # Format the PR list as a comma-separated value for easier processing
+          prs_list=$(echo "$prs" | tr '\n' ',' | sed 's/,$//')  # Replace newlines with commas
+          
+          echo "prs_list=$prs_list" >> $GITHUB_ENV
 
       - name: Rebase each open PR
         run: |
-          # Iterate through each PR listed
-          for pr in $prs
+          # Read the PR list from the environment variable
+          prs_list="${{ env.prs_list }}"
+
+          # Split the prs_list and loop over each PR
+          IFS=',' read -ra prs <<< "$prs_list"
+          
+          # Iterate through each PR and rebase it
+          for pr in "${prs[@]}"
           do
             pr_number=$(echo $pr | awk '{print $1}')
             pr_branch=$(echo $pr | awk '{print $2}')
@@ -67,6 +80,7 @@ jobs:
 
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
