@@ -9,14 +9,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Git
         run: |
-          git config user.name "vishnu4reddy"  # Replace with your GitHub username
-          git config user.email "vreddy@msystechnologies.com"  # Ensure this email is valid
+          git config user.name "vishnu4reddy"  # Replace with your GitHub username 
+          git config user.email "vreddy@msystechnoloeis.com"  # Ensure this email is valid 
+
       - name: Install GitHub CLI
         run: |
           sudo apt-get update
           sudo apt-get install -y gh
+
       - name: Get list of open PRs
         id: pr_list
         env:
@@ -37,19 +40,19 @@ jobs:
             echo "Setting pr_value: '$pr'"  # Debug output
             echo "pr_value=$pr" >> $GITHUB_ENV  # Use this format
           done
+
       - name: Debug PR List Output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure the token is provided here as well
         run: |
           echo "Debugging PR List Output:"
           # This will print all pr_value entries set
-          gh pr list
-
           gh pr list --state open
           if [ $? -ne 0 ]; then
               echo "Error: Failed to list PRs"
               exit 1
           fi
 
-          
       - name: Rebase each open PR
         run: |
           set -x
@@ -84,5 +87,6 @@ jobs:
               continue  # Skip to the next PR
             fi
           done <<< "$(printenv | grep pr_value | cut -d'=' -f2)"  # Read from the environment
+
 
             
