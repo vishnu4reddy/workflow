@@ -3,7 +3,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - main  # Trigger on push to master branch
+      - main  # Trigger on push to main branch
 
 jobs:
   rebase:
@@ -48,8 +48,8 @@ jobs:
             echo "Before rebase (PR $pr_number):"
             git log --oneline --decorate --graph
 
-            # Rebase the PR branch onto the latest master
-            git rebase origin/master || {
+            # Rebase the PR branch onto the latest main
+            git rebase origin/main || {
               echo "Rebase failed due to conflicts, skipping..."
               git rebase --skip
             }
