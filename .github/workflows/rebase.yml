@@ -3,7 +3,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - main 
+      - main  
 
 jobs:
   rebase:
@@ -24,6 +24,8 @@ jobs:
 
       - name: Get list of open PRs
         id: pr_list
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set GH_TOKEN to the GitHub Token
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
           echo "prs=$prs" >> $GITHUB_ENV
