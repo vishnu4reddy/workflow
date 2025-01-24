@@ -2,7 +2,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - main  
+      - main
 jobs:
   rebase:
     runs-on: ubuntu-latest
@@ -24,18 +24,24 @@ jobs:
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
           echo "Open PRs: $prs"  # Debugging step to print out the list of PRs
-          echo "prs=$prs" >> $GITHUB_ENV  # Correctly sets environment variable
+          echo "prs=$prs" >> $GITHUB_ENV  # Sets environment variable for the next step
       - name: Rebase each open PR
         run: |
           set -x  # Print commands for debugging
           git fetch origin  # Make sure to fetch all branches
           
-          echo "The following PRs were found: ${{ env.prs }}"  # Debugging output
+          echo "The following PRs were found:" 
+          echo ${{ env.prs }}  # Debugging output to check the format of PRs
           
+          # Set IFS to handle newlines properly
           IFS=$'\n'  # Use newline as a delimiter for loop
           for pr in ${{ env.prs }}; do
-            pr_number=$(echo "$pr" | awk '{print $1}')  # Get the PR number
-            pr_branch=$(echo "$pr" | awk '{print $2}')  # Get the PR branch
+            # Log the raw PR entry for debugging
+            echo "Raw PR entry: $pr"
+            
+            # Get the PR number and branch name
+            pr_number=$(echo "$pr" | awk '{print $1}')  # Extract PR number
+            pr_branch=$(echo "$pr" | awk '{print $2}')  # Extract PR branch
             echo "Processing PR #$pr_number: Branch name is [$pr_branch]"
             # Check if branch name is valid
             if [[ -z "$pr_branch" ]]; then
@@ -53,4 +59,3 @@ jobs:
             git push origin "$pr_branch" --force-with-lease || { echo "Failed to push $pr_branch"; exit 1; }
             echo "Successfully pushed changes for $pr_branch"
           done
-
