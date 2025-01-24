@@ -18,30 +18,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
       - name: Get list of open PRs
-            
         id: pr_list
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure your token has proper permissions
         run: |
-          # Fetching open PRs and setting output correctly
+          # Fetching open PRs
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          echo "Open PRs: $prs"  
+          echo "Open PRs: '$prs'"  # Quoting output for better visibility
           
           # Check if no PRs were returned
           if [[ -z "$prs" ]]; then
             echo "No open PRs found."
             exit 0
           fi
-          
-          # Use printf to handle newlines properly
-          while IFS= read -r pr; do
-            echo "pr_value=$pr" >> $GITHUB_ENV  # Set each PR separately in GITHUB_ENV
-          done <<< "$prs"
-
+          # Directly assign the raw list to GITHUB_ENV
+          IFS=$'\n'          # Set IFS to newline for reading
+          for pr in $prs; do
+            # Trim whitespace and set as environment variable for each PR
+            echo "Setting pr_value: '$pr'"  # Debug output
+            echo "pr_value=$pr" >> $GITHUB_ENV  # Use this format
+          done
       - name: Debug PR List Output
         run: |
           echo "Debugging PR List Output:"
-          printenv | grep pr_value  # Print the environment variables for debugging purposes
+          # This will print all pr_value entries set
+          printenv | grep pr_value 
           
       - name: Rebase each open PR
         run: |
@@ -49,9 +50,9 @@ jobs:
           git fetch origin  # Get all branches
           # Loop through each pr_value set in the environment
           for pr in $(printenv | grep pr_value | cut -d'=' -f2); do
-            echo "Processing PR: $pr"
-            pr_number=$(echo "$pr" | awk '{print $1}')
-            pr_branch=$(echo "$pr" | awk '{print $2}')
+            echo "Processing PR: '$pr'"
+            pr_number=$(echo "$pr" | awk '{print $1}')  # Expected first column as number
+            pr_branch=$(echo "$pr" | awk '{print $2}')  # Expected second column as branch
             echo "Extracted PR number: $pr_number and branch: $pr_branch"
             if [[ -z "$pr_branch" ]]; then
               echo "Error: Branch name for PR #$pr_number is empty."
@@ -72,6 +73,3 @@ jobs:
             git push origin "$pr_branch" --force-with-lease || { echo "Failed to push $pr_branch"; exit 1; }
             echo "Successfully pushed changes for $pr_branch"
           done
-
-          
-
