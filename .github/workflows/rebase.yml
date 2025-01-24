@@ -25,13 +25,15 @@ jobs:
       - name: Get list of open PRs
         id: pr_list
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set GH_TOKEN to the GitHub Token
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Pass the token explicitly
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
+          echo "Open PRs: $prs"  # Debugging step to print out the list of PRs
           echo "prs=$prs" >> $GITHUB_ENV
 
       - name: Rebase each open PR
         run: |
+          echo "The following PRs were found: ${{ env.prs }}"  # Debugging to check what was passed
           for pr in $(echo "${{ steps.pr_list.outputs.prs }}" | tr " " "\n")
           do
             pr_number=$(echo $pr | awk '{print $1}')
