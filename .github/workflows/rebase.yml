@@ -84,7 +84,6 @@ jobs:
             else
               echo "Rebase failed for $pr_branch due to conflicts. Skipping this PR."
               git rebase --abort  # Abort the rebase process to avoid issues
-              git rebase --skip   #skip the rebase process to avoid issues
               continue  # Skip to the next PR
             fi
           done <<< "$(printenv | grep pr_value | cut -d'=' -f2)"  # Read from the environment
