@@ -16,23 +16,36 @@ jobs:
       - name: Set up Git
         run: |
           git config user.name "vishnu4reddy"
-          git config user.email "vishnu4reddy"
+          git config user.email "vishnureddy"
 
       - name: Install GitHub CLI
         run: |
           sudo apt-get install gh
         
+      - name: Authenticate with GitHub CLI
+        run: |
+          gh auth login --with-token < $GITHUB_TOKEN
+
       - name: Get list of open PRs
         id: pr_list
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          echo "prs=$prs" >> $GITHUB_ENV
+          echo "Raw PR List: $prs"  # Output raw data for debugging
+          echo "prs_list=$prs" >> $GITHUB_ENV  # Write to environment variable
 
       - name: Rebase each open PR
         run: |
+          # Get the prs_list from the environment variable
           prs_list="${{ env.prs_list }}"
+          echo "PR list: $prs_list"  # Print the PR list for debugging
 
-          IFS=',' read -ra prs <<< "$prs_list"
+          if [ -z "$prs_list" ]; then
+            echo "No open PRs to rebase."
+            exit 0  # Exit if no PRs are found
+          fi
+
+          # Process each PR
+          IFS=$'\n' read -ra prs <<< "$prs_list"
 
           for pr in "${prs[@]}"
           do
