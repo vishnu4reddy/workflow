@@ -41,7 +41,7 @@ jobs:
         run: |
           echo "Debugging PR List Output:"
           # This will print all pr_value entries set
-          
+          gh pr list
 
           gh pr list --state open
           if [ $? -ne 0 ]; then
