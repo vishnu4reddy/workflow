@@ -2,7 +2,7 @@ name: Rebase Open PRs on Merge
 on:
   push:
     branches:
-      - main
+      - main  
 jobs:
   rebase:
     runs-on: ubuntu-latest
@@ -16,46 +16,53 @@ jobs:
       - name: Install GitHub CLI
         run: |
           sudo apt-get update
-          sudo apt-get install -y gh  # Ensure 'gh' is installed
+          sudo apt-get install -y gh
       - name: Get list of open PRs
         id: pr_list
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure the token has 'repo' permissions
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Make sure your token has the right permissions
         run: |
           prs=$(gh pr list --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
-          echo "Open PRs: $prs"  # Debugging step to print out the list of PRs
-          echo "prs=$prs" >> $GITHUB_ENV  # Sets environment variable for the next step
+          echo "Open PRs: $prs"  # Debugging to print the output
+          echo "prs='$prs'" >> $GITHUB_ENV  # Setting the variable to be usable in next steps
+      - name: Debug PR List Output
+        run: |
+          echo "Debugging PR List Output: ${{ env.prs }}"
+          
       - name: Rebase each open PR
         run: |
-          set -x  # Print commands for debugging
-          git fetch origin  # Make sure to fetch all branches
+          set -x
+          git fetch origin  # Get all branches
           
-          echo "The following PRs were found:" 
-          echo ${{ env.prs }}  # Debugging output to check the format of PRs
+          # Verify we received PRs
+          if [[ -z "${{ env.prs }}" ]]; then
+            echo "No open PRs found."
+            exit 0  # Exit gracefully if no PRs are found
+          fi
           
-          # Set IFS to handle newlines properly
-          IFS=$'\n'  # Use newline as a delimiter for loop
+          echo "The following PRs were found: ${{ env.prs }}"
+          
+          IFS=$'\n'  # Use newline as a delimiter
           for pr in ${{ env.prs }}; do
-            # Log the raw PR entry for debugging
-            echo "Raw PR entry: $pr"
+            echo "Processing PR: $pr"  # Log the entire entry for debugging
             
-            # Get the PR number and branch name
-            pr_number=$(echo "$pr" | awk '{print $1}')  # Extract PR number
-            pr_branch=$(echo "$pr" | awk '{print $2}')  # Extract PR branch
-            echo "Processing PR #$pr_number: Branch name is [$pr_branch]"
-            # Check if branch name is valid
+            # Split the output into pr_number and pr_branch
+            pr_number=$(echo "$pr" | awk '{print $1}')
+            pr_branch=$(echo "$pr" | awk '{print $2}')
+            
+            echo "Extracted PR number: $pr_number and branch: $pr_branch"
+            
             if [[ -z "$pr_branch" ]]; then
               echo "Error: Branch name for PR #$pr_number is empty."
-              exit 1
+              continue  # Continue the loop instead of exiting if a branch is not found
             fi
-            
-            # Attempt to check out the branch
+            # Checkout the branch
             git checkout "$pr_branch" || { echo "Failed to checkout $pr_branch"; exit 1; }
             echo "Checked out branch $pr_branch"
-            # Attempt to rebase
+            # Rebase the branch
             git rebase origin/main || { echo "Rebase failed for $pr_branch"; exit 1; }
             echo "Rebase successful for $pr_branch"
-            # Attempt to push changes
+            # Push the rebased branch
             git push origin "$pr_branch" --force-with-lease || { echo "Failed to push $pr_branch"; exit 1; }
             echo "Successfully pushed changes for $pr_branch"
           done
