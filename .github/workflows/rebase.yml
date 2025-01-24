@@ -86,6 +86,6 @@ jobs:
               git rebase --abort  # Abort the rebase process to avoid issues
               continue  # Skip to the next PR
             fi
-          done
+          done <<< "$(printenv | grep pr_value | cut -d'=' -f2)"  # Read from the environment
 
             
