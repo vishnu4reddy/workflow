@@ -75,7 +75,7 @@ jobs:
             echo "Checked out branch $pr_branch"
             
             # Attempt to rebase the branch
-            if git rebase origin/main; then
+            if git rebase origin/main -i; then
               echo "Rebase successful for $pr_branch"
               
               # Push the rebased branch
